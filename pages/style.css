@@ -30,3 +30,26 @@ h1 {
     font-variant: small-caps;
     font-style: oblique;
 }
+
+.search_box {
+    border-radius: 25;
+    background-color: #252428;
+    width: fit-content;
+    
+    padding: 5px;
+    border-radius: 25px;
+}
+
+.search_text {
+    background-color: #252428;
+    border-color: #252428;
+    border-style: none;
+
+    user-select: none;
+    outline-width: 0px;
+    outline: none;
+
+    color: white;
+
+    padding-left: 10px;
+}
