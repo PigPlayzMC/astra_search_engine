@@ -23,3 +23,10 @@ h1 {
 
     z-index: -5;
 }
+
+.name {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-weight: bolder;
+    font-variant: small-caps;
+    font-style: oblique;
+}
