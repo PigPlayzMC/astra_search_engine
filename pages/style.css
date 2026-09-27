@@ -24,6 +24,13 @@ h1 {
     z-index: -5;
 }
 
+.search_area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 30vh;
+}
+
 .name {
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     font-weight: bolder;
@@ -40,6 +47,11 @@ h1 {
     border-radius: 25px;
 }
 
+.search_form {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
 .search_text {
     background-color: #252428;
     border-color: #252428;
@@ -50,6 +62,9 @@ h1 {
     outline: none;
 
     color: white;
+}
 
-    padding-left: 10px;
+.search_button {
+    background: none;
+    border: none;
 }
