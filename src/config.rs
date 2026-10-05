@@ -1,7 +1,6 @@
 use std::{
     fmt, fs, io::Error, net::{
-        IpAddr, 
-        Ipv4Addr,
+        IpAddr, Ipv4Addr, SocketAddr,
     }
 };
 
@@ -12,12 +11,12 @@ pub struct Config {
     port: u16,
 }
 
-trait FromFile {
-    fn from_file(path: String) -> Config;
+pub trait FromFile {
+    fn from_file(path: &str) -> Config;
 }
 
 impl FromFile for Config {
-    fn from_file(path: String) -> Config {
+    fn from_file(path: &str) -> Config {
         let file: Vec<&str> = match fs::read_to_string(path) {
             Ok(f) => f,
             Err(e) => {
@@ -30,7 +29,7 @@ impl FromFile for Config {
     }
 }
 
-trait NewFile {
+pub trait NewFile {
     fn new_file(path: String) -> Result<(), FileExistsError>;
 }
 
@@ -48,6 +47,16 @@ impl NewFile for Config {
                 return Err(FileExistsError)
             },
         };
+    }
+}
+
+pub trait GetBindSocket {
+    fn get_bind_socket(&self) -> SocketAddr;
+}
+
+impl GetBindSocket for Config {
+    fn get_bind_socket(&self) -> SocketAddr {
+        return (self.address, self.port).into()
     }
 }
 
