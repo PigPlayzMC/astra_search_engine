@@ -61,7 +61,7 @@ impl GetBindSocket for Config {
 }
 
 #[derive(Debug, Clone)]
-struct FileExistsError;
+pub struct FileExistsError;
 
 impl fmt::Display for FileExistsError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
