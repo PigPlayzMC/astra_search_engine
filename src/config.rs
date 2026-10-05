@@ -20,7 +20,7 @@ impl FromFile for Config {
         let file: Vec<&str> = match fs::read_to_string(path) {
             Ok(f) => f,
             Err(e) => {
-                fatal_error::<String, Error>("Unable to load config file", &e);
+                fatal_error::<Error>("Unable to load config file", &e);
                 unreachable!();
             }
         }.split("\n").collect();

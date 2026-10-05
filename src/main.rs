@@ -3,10 +3,9 @@ use std::{
         IpAddr, 
         Ipv4Addr,
         TcpListener,
-        TcpStream,
+        AddrParseError
     },
     str::FromStr,
-    process::exit,
 };
 
 mod config;
@@ -17,7 +16,7 @@ use config::{
     FromFile,
 };
 
-use crate::config::GetBindSocket;
+use crate::{config::GetBindSocket, error::fatal_error};
 
 fn main() {
     let address: IpAddr = IpAddr::from(Ipv4Addr::from_str("127.0.0.1").expect("Failed to parse string ip address"));
@@ -28,8 +27,9 @@ fn main() {
     let listener: TcpListener = match TcpListener::bind(config.get_bind_socket()) {
         Ok(t) => t,
         Err(e) => {
-            eprintln!("Fatal error: Failed to bind to address {} with error {}. \nPlease check your configuration file.", config.get_bind_socket(), e);
-            exit(1);
+            fatal_error::<AddrParseError>(&("Unable to bind to socket ".to_string() + &config.get_bind_socket().to_string()), &e);
+
+            unreachable!();
         },
     };
 }
