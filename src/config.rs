@@ -21,21 +21,26 @@ pub trait FromFile {
 
 impl FromFile for Config {
     fn from_file(path: &str) -> Result<Config, FileNotFoundError> {
-        let file: Vec<&str> = match fs::read_to_string(path) {
+        let file_string: String = match fs::read_to_string(path) {
             Ok(f) => f,
             Err(e) => {
                 error::<Error>("Unable to load config file", &e);
 
                 return Err(FileNotFoundError)
             }
-        }.split("\n").collect();
+        };
 
+        let file: Vec<&str> = file_string.split("\n").collect();
+
+        println!("{:?}", file);
         todo!()
     }
 }
 
 pub trait NewFile {
     fn new_file(path: &str) -> Result<(), FileExistsError>;
+
+    fn get_setting_value(search_term: &str, error_on_missing: bool) -> Result<Option<String>, RequiredSettingMissingError>;
 }
 
 impl NewFile for Config {
@@ -56,6 +61,7 @@ impl NewFile for Config {
         let mut file: File = match File::create_new(&path) {
             Ok(f) => f,
             Err(e) => {
+                error::<Error>("File creation error", &e);
                 return Err(FileExistsError)
             },
         };
@@ -76,6 +82,12 @@ impl NewFile for Config {
         }
 
         return Ok(())
+    }
+
+    fn get_setting_value(search_term: &str, error_on_missing: bool) -> Result<Option<String>, RequiredSettingMissingError> {
+        
+
+        todo!()
     }
 }
 
@@ -110,3 +122,14 @@ impl fmt::Display for FileNotFoundError {
 }
 
 impl std::error::Error for FileNotFoundError {}
+
+#[derive(Debug, Clone)]
+pub struct RequiredSettingMissingError;
+
+impl fmt::Display for RequiredSettingMissingError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "config file is missing at least one required setting")
+    }
+}
+
+impl std::error::Error for RequiredSettingMissingError {}

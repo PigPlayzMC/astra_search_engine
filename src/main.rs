@@ -22,8 +22,8 @@ fn main() {
     match Config::from_file(config_path) {
         Ok(c) => {
             config = c;
-    },
-        Err(e) => {
+        },
+        Err(e) => { // Create a new config file, then load from that
             error::<FileNotFoundError>("Unable to open config file, attempting to create new file", &e);
 
             match Config::new_file(config_path) {
