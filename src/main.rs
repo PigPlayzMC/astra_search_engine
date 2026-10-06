@@ -1,11 +1,8 @@
 use std::{
     net::{
-        IpAddr, 
-        Ipv4Addr,
+        AddrParseError,
         TcpListener,
-        AddrParseError
     },
-    str::FromStr,
 };
 
 mod config;
@@ -16,10 +13,31 @@ use config::{
     FromFile,
 };
 
-use crate::{config::GetBindSocket, error::fatal_error};
+use crate::{config::{FileExistsError, FileNotFoundError, GetBindSocket, NewFile}, error::{error, fatal_error}};
 
 fn main() {
-    let config: Config = Config::from_file("astra.conf");
+    let config_path = "astra.conf";
+
+    let config: Config;
+    match Config::from_file(config_path) {
+        Ok(c) => {
+            config = c;
+    },
+        Err(e) => {
+            error::<FileNotFoundError>("Unable to open config file, attempting to create new file", &e);
+
+            match Config::new_file(config_path) {
+                Ok(_) => (),
+                Err(e) => {
+                    fatal_error::<FileExistsError>("Unable to create default config file", &e);
+
+                    unreachable!();
+                }
+            };
+
+            config = Config::from_file(config_path).expect("Config file should be avaliable now, as it has been created.");
+        }
+    };
 
     let listener: TcpListener = match TcpListener::bind(config.get_bind_socket()) {
         Ok(t) => t,
