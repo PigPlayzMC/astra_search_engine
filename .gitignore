@@ -80,4 +80,4 @@ rustc-ice-*.txt
 .DS_Store
 
 # Astra config files
-*/astra.conf
+**/astra.conf
