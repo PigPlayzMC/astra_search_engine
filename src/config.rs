@@ -4,6 +4,7 @@ use std::{
         SocketAddr,
     }
 };
+use regex::Regex;
 
 use crate::error::{
     fatal_error,
@@ -17,6 +18,8 @@ pub struct Config {
 
 pub trait FromFile {
     fn from_file(path: &str) -> Result<Config, FileNotFoundError>;
+
+    fn get_setting_value(split_file: &str, search_term: &str, error_on_missing: bool) -> Result<Option<String>, RequiredSettingMissingError>;
 }
 
 impl FromFile for Config {
@@ -30,17 +33,39 @@ impl FromFile for Config {
             }
         };
 
-        let file: Vec<&str> = file_string.split("\n").collect();
+        println!("{:?}", Config::get_setting_value(&file_string, "Address", false));
 
-        println!("{:?}", file);
+        ////println!("{:?}", file_string);
+        todo!()
+    }
+
+    fn get_setting_value(split_file: &str, search_term: &str, error_on_missing: bool) -> Result<Option<String>, RequiredSettingMissingError> {
+        let regex: Regex = Regex::new(&(r"(?ms)(".to_owned() + search_term + "=.*)\n")).expect("This \
+        should remain a valid RegEx, as it has been tested");
+        // This RegEx matches for the search, all values after the term before a new line, and only
+        // matches if the match begins on a new line, reducing the risk of matching from a comment
+
+        ////println!("{}", regex);
+        
+        let captures: regex::Captures<'_> = match regex.captures(split_file) {
+            Some(cap) => cap,
+            None => {
+                if error_on_missing {
+                    return Err(RequiredSettingMissingError);
+                } else {
+                    return Ok(None);
+                };
+            },
+        };
+
+        println!("{:?}", captures);
+
         todo!()
     }
 }
 
 pub trait NewFile {
     fn new_file(path: &str) -> Result<(), FileExistsError>;
-
-    fn get_setting_value(search_term: &str, error_on_missing: bool) -> Result<Option<String>, RequiredSettingMissingError>;
 }
 
 impl NewFile for Config {
@@ -48,7 +73,7 @@ impl NewFile for Config {
         let file_exists: bool = match fs::exists(&path) {
             Ok(r) => r,
             Err(e) => {
-                eprintln!("IO Error: {}", e);
+                error::<std::io::Error>("unable to check if config file exists", &e);
                 true
             },
         };
@@ -82,12 +107,6 @@ impl NewFile for Config {
         }
 
         return Ok(())
-    }
-
-    fn get_setting_value(search_term: &str, error_on_missing: bool) -> Result<Option<String>, RequiredSettingMissingError> {
-        
-
-        todo!()
     }
 }
 
