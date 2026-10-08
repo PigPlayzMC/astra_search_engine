@@ -6,10 +6,18 @@ use std::{
 };
 use regex::Regex;
 
-use crate::error::{
-    fatal_error,
-    error,
-};
+use crate::{config::SettingType::CriticalDuplicate, error::{
+    error, fatal_error,
+}};
+
+pub enum SettingType {
+    CriticalUnique, // Setting must have only one value
+    CriticalDuplicate, // Setting must exist, but may have any quantity
+    Unique, // Setting can either be absent, or have one associated value
+    Duplicate, // Setting may exist or not, in any quantity
+    // Note: Reading from multiple setting strings is not supported, multiple values must
+    // be read from the same Setting= structure, seperated by a comma (,)
+}
 
 pub struct Config {
     address: IpAddr,
@@ -19,7 +27,7 @@ pub struct Config {
 pub trait FromFile {
     fn from_file(path: &str) -> Result<Config, FileNotFoundError>;
 
-    fn get_setting_value(split_file: &str, search_term: &str, error_on_missing: bool) -> Result<Option<String>, RequiredSettingMissingError>;
+    fn get_setting_value(split_file: &str, search_term: &str, search_type: SettingType) -> Result<Option<String>, RequiredSettingMissingError>;
 }
 
 impl FromFile for Config {
@@ -33,13 +41,13 @@ impl FromFile for Config {
             }
         };
 
-        println!("{:?}", Config::get_setting_value(&file_string, "Address", false));
+        println!("{:?}", Config::get_setting_value(&file_string, "Address", CriticalDuplicate));
 
         ////println!("{:?}", file_string);
         todo!()
     }
 
-    fn get_setting_value(split_file: &str, search_term: &str, error_on_missing: bool) -> Result<Option<String>, RequiredSettingMissingError> {
+    fn get_setting_value(split_file: &str, search_term: &str, search_type: SettingType) -> Result<Option<String>, RequiredSettingMissingError> {
         let regex: Regex = Regex::new(&(r"(?ms)(".to_owned() + search_term + "=.*)\n")).expect("This \
         should remain a valid RegEx, as it has been tested");
         // This RegEx matches for the search, all values after the term before a new line, and only
@@ -50,15 +58,18 @@ impl FromFile for Config {
         let captures: regex::Captures<'_> = match regex.captures(split_file) {
             Some(cap) => cap,
             None => {
-                if error_on_missing {
-                    return Err(RequiredSettingMissingError);
-                } else {
-                    return Ok(None);
+                match search_type {
+                    SettingType::CriticalUnique | SettingType::Unique => {
+                        return Err(RequiredSettingMissingError);
+                    },
+                    _ => {
+                        return Ok(None);
+                    },
                 };
             },
         };
 
-        println!("{:?}", captures);
+        println!("{:?}", captures.get(0).map_or("", |m| m.as_str()));
 
         todo!()
     }
