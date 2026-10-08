@@ -69,9 +69,29 @@ impl FromFile for Config {
             },
         };
 
-        println!("{:?}", captures.get(0).map_or("", |m| m.as_str()));
+        let mut value: &str = match captures
+            .get(0)
+            .map_or("", |m| m.as_str())
+            .split("=").nth(1) {
+                Some(s) => s,
+                None => {
+                    fatal_error::<RequiredSettingMissingError>("No value associated with setting ", &RequiredSettingMissingError);
+                    // Not all settings are required, but if assigned, a value is always required
 
-        todo!()
+                    unreachable!();
+                },
+            };
+
+        match value.strip_suffix('\n') { // Returns a result, this is handled to avoid removing a value at the end of a file
+            Some(s) => {
+                value = s;
+            },
+            None => {},
+        };
+
+        ////println!("{}", value);
+
+        return Ok(Some(value.to_string()))
     }
 }
 
