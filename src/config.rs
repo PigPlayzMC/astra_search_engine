@@ -1,8 +1,7 @@
 use std::{
     fmt, fs::{self, File}, io::{Error, Write}, net::{
-        IpAddr,
-        SocketAddr,
-    }
+        AddrParseError, IpAddr, SocketAddr,
+    }, str::FromStr
 };
 use regex::Regex;
 
@@ -20,18 +19,22 @@ pub enum SettingType {
 }
 
 pub struct Config {
-    address: IpAddr,
+    address: Vec<IpAddr>,
     port: u16,
 }
 
 pub trait FromFile {
     fn from_file(path: &str) -> Result<Config, FileNotFoundError>;
 
+    fn get_address_from_string(string: &str) -> IpAddr;
+
     fn get_setting_value(split_file: &str, search_term: &str, search_type: SettingType) -> Result<Option<String>, RequiredSettingMissingError>;
 }
 
 impl FromFile for Config {
     fn from_file(path: &str) -> Result<Config, FileNotFoundError> {
+        let mut created_config: Config = Config::default();
+
         let file_string: String = match fs::read_to_string(path) {
             Ok(f) => f,
             Err(e) => {
@@ -41,10 +44,38 @@ impl FromFile for Config {
             }
         };
 
-        println!("{:?}", Config::get_setting_value(&file_string, "Address", CriticalDuplicate));
+        created_config.address = match Config::get_setting_value(&file_string, "Address", CriticalDuplicate) {
+            Ok(Some(str)) => {
+                let split_str: Vec<&str> = str.split(",").collect();
+                let mut output_vec: Vec<IpAddr> = vec![];
 
+                for str in split_str {
+                    output_vec.push(Self::get_address_from_string(str));
+                };
+
+                output_vec
+            },
+            Ok(None) => { // This is required so cannot 
+                unreachable!();
+            },
+            Err(e) => {
+                fatal_error::<RequiredSettingMissingError>("Required setting missing", &e);
+                unreachable!()
+            },
+        };
         ////println!("{:?}", file_string);
-        todo!()
+
+        return Ok(created_config)
+    }
+
+    fn get_address_from_string(string: &str) -> IpAddr {
+        return match IpAddr::from_str(string) {
+            Ok(r) => r,
+            Err(e) => {
+                fatal_error::<AddrParseError>("Failed to parse IP address from config", &e);
+                unreachable!()
+            },
+        }
     }
 
     fn get_setting_value(split_file: &str, search_term: &str, search_type: SettingType) -> Result<Option<String>, RequiredSettingMissingError> {
@@ -128,7 +159,7 @@ impl NewFile for Config {
         configuration file must be edited to be used \
         normally.\n\
         Address=127.0.0.1\n\
-        Port=80,443";
+        Port=80,443"; // TODO Link with default config
 
         match file.write(standard_config.as_bytes()) {
             Ok(_) => (),
@@ -142,12 +173,27 @@ impl NewFile for Config {
 }
 
 pub trait GetBindSocket {
-    fn get_bind_socket(&self) -> SocketAddr;
+    fn get_bind_socket(&self, Index: usize) -> SocketAddr;
+
+    fn get_socket_numbers(&self) -> usize;
 }
 
 impl GetBindSocket for Config {
-    fn get_bind_socket(&self) -> SocketAddr {
-        return (self.address, self.port).into()
+    fn get_bind_socket(&self, index: usize) -> SocketAddr {
+        return (self.address[index], self.port).into()
+    }
+
+    fn get_socket_numbers(&self) -> usize {
+        return self.address.len();
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            address: vec![IpAddr::from_str("127.0.0.1").expect("This is a built-in default and should not fail")],
+            port: 80,
+        }
     }
 }
 

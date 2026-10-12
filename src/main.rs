@@ -39,10 +39,11 @@ fn main() {
         }
     };
 
-    let listener: TcpListener = match TcpListener::bind(config.get_bind_socket()) {
+    // TODO Multiple listeners
+    let listener: TcpListener = match TcpListener::bind(config.get_bind_socket(0)) {
         Ok(t) => t,
         Err(e) => {
-            fatal_error::<AddrParseError>(&("Unable to bind to socket ".to_string() + &config.get_bind_socket().to_string()), &e);
+            fatal_error::<AddrParseError>(&("Unable to bind to socket ".to_string() + &config.get_bind_socket(0).to_string()), &e);
 
             unreachable!();
         },
