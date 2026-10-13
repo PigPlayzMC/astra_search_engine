@@ -15,7 +15,7 @@ use config::{
 
 use crate::{config::{FileExistsError, FileNotFoundError, BindSocket, NewFile}, error::{error, fatal_error}};
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>>{
     let config_path = "astra.conf";
 
     let config: Config;
@@ -47,5 +47,11 @@ fn main() {
 
             unreachable!();
         },
+    };
+
+    loop {
+        let (request_stream, request_address): (std::net::TcpStream, std::net::SocketAddr) = listener.accept()?;
+
+        
     };
 }
