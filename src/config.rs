@@ -231,7 +231,7 @@ impl NewFile for Config {
 pub trait BindSocket {
     fn get_bind_socket(&self, address_index: usize, port_index: usize) -> SocketAddr;
 
-    fn get_socket_numbers(&self) -> usize;
+    fn get_socket_numbers(&self) -> (usize, usize);
 }
 
 impl BindSocket for Config {
@@ -239,8 +239,8 @@ impl BindSocket for Config {
         return (self.address[address_index], self.port[port_index]).into()
     }
 
-    fn get_socket_numbers(&self) -> usize {
-        return self.address.len();
+    fn get_socket_numbers(&self) -> (usize, usize) {
+        return (self.address.len() - 1, self.port.len() - 1);
     }
 }
 

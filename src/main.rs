@@ -2,7 +2,7 @@ use std::{
     net::{
         AddrParseError,
         TcpListener,
-    },
+    }, vec,
 };
 
 mod config;
@@ -15,7 +15,7 @@ use config::{
 
 use crate::{config::{FileExistsError, FileNotFoundError, BindSocket, NewFile}, error::{error, fatal_error}};
 
-fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>>{
+fn main() {
     let config_path = "astra.conf";
 
     let config: Config;
@@ -40,18 +40,24 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>>{
     };
 
     // TODO Multiple listeners
-    let listener: TcpListener = match TcpListener::bind(config.get_bind_socket(0, 0)) {
-        Ok(t) => t,
-        Err(e) => {
-            fatal_error::<AddrParseError>(&("Unable to bind to socket ".to_string() + &config.get_bind_socket(0, 0).to_string()), &e);
+    let (addresses, ports): (usize, usize) = config.get_socket_numbers();
 
-            unreachable!();
-        },
+    let mut listener_vec: Vec<TcpListener> = vec![];
+    for address in 0..addresses {
+        for port in 0..ports {
+            listener_vec.push(
+                match TcpListener::bind(config.get_bind_socket(address, port)) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        fatal_error::<AddrParseError>(&("Unable to bind to socket ".to_string() + &config.get_bind_socket(0, 0).to_string()), &e);
+
+                        unreachable!();
+                    },
+                }
+            );
+        };
     };
 
-    loop {
-        let (request_stream, request_address): (std::net::TcpStream, std::net::SocketAddr) = listener.accept()?;
-
-        
-    };
+    // Create TCP subhandlers
+    
 }
