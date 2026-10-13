@@ -5,7 +5,7 @@ use std::{
 };
 use regex::Regex;
 
-use crate::{config::SettingType::CriticalDuplicate, error::{
+use crate::{config::SettingType::{CriticalDuplicate, CriticalUnique, Duplicate, Unique}, error::{
     error, fatal_error,
 }};
 
@@ -20,7 +20,7 @@ pub enum SettingType {
 
 pub struct Config {
     address: Vec<IpAddr>,
-    port: u16,
+    port: Vec<u16>,
 }
 
 pub trait FromFile {
@@ -29,6 +29,8 @@ pub trait FromFile {
     fn get_address_from_string(string: &str) -> IpAddr;
 
     fn get_setting_value(split_file: &str, search_term: &str, search_type: SettingType) -> Result<Option<String>, RequiredSettingMissingError>;
+
+    fn handle_setting(split_file: &str, search_term: &str, search_type: SettingType) -> Vec<String>;
 }
 
 impl FromFile for Config {
@@ -44,42 +46,96 @@ impl FromFile for Config {
             }
         };
 
-        created_config.address = match Config::get_setting_value(&file_string, "Address", CriticalDuplicate) {
-            Ok(Some(str)) => {
-                let split_str: Vec<&str> = str.split(",").collect();
-                let mut output_vec: Vec<IpAddr> = vec![];
+        created_config.address = {
+            let mut interim_vec: Vec<IpAddr> = vec![]; // Mutable placeholder
 
-                for str in split_str {
-                    output_vec.push(Self::get_address_from_string(str));
-                };
+            Config::handle_setting(&file_string, "Address", CriticalDuplicate)
+                .iter()
+                .for_each(|x| {interim_vec.push(Config::get_address_from_string(x));});
+            // Get string vector of addresses, iterate through vector, convert each to an IP address of IpAddr class, then add to
+            // The interim vector
 
-                output_vec
-            },
-            Ok(None) => { // This is required so cannot 
-                unreachable!();
-            },
-            Err(e) => {
-                fatal_error::<RequiredSettingMissingError>("Required setting missing", &e);
-                unreachable!()
-            },
+            interim_vec // Final return
         };
         ////println!("{:?}", file_string);
+        
+        created_config.port = {
+            let mut interim_vec: Vec<u16> = vec![];
+
+            Config::handle_setting(&file_string, "Port", CriticalDuplicate)
+                .iter()
+                .for_each(|x| {
+                    interim_vec.push(match x.parse::<u16>() {
+                        Ok(int) => int,
+                        Err(e) => {
+                            fatal_error::<std::num::ParseIntError>(&("Could not parse ".to_owned() + &x + "as a u16 port"), &e);
+
+                            unreachable!();
+                        },
+                    });
+                }
+            );
+
+            interim_vec
+        };
 
         return Ok(created_config)
+    }
+
+    fn handle_setting(file_string: &str, search_term: &str, search_type: SettingType) -> Vec<String> { // Abstraction to avoid rewriting logic
+        match search_type {
+            CriticalDuplicate | Duplicate => {
+                match Config::get_setting_value(&file_string, search_term, search_type) {
+                    Ok(Some(str)) => {
+                        let split_str: Vec<&str> = str.split(",").collect();
+                        let mut string_vec: Vec<String> = vec![];
+                        split_str.iter().for_each(|x| {string_vec.push(x.to_string());});
+
+                        string_vec
+                    },
+                    Ok(None) => { // This is required so cannot 
+                        unreachable!();
+                    },
+                    Err(e) => {
+                        fatal_error::<RequiredSettingMissingError>("Required setting missing", &e);
+                        unreachable!();
+                    },
+                }
+            },
+            CriticalUnique | Unique => { // 
+                match Config::get_setting_value(&file_string, search_term, search_type) {
+                    Ok(Some(str)) => {
+                        let split_str: Vec<&str> = str.split(",").collect();
+                        let string_vec: Vec<String> = vec![split_str[0].to_string()];
+                        // No point returning anything extra, the program expects a single
+                        // value for this set
+
+                        string_vec
+                    },
+                    Ok(None) => { // This is required so cannot 
+                        unreachable!();
+                    },
+                    Err(e) => {
+                        fatal_error::<RequiredSettingMissingError>("Required setting missing", &e);
+                        unreachable!();
+                    },
+                }
+            },
+        }
     }
 
     fn get_address_from_string(string: &str) -> IpAddr {
         return match IpAddr::from_str(string) {
             Ok(r) => r,
             Err(e) => {
-                fatal_error::<AddrParseError>("Failed to parse IP address from config", &e);
+                fatal_error::<AddrParseError>(&("Failed to parse IP address from config string (".to_owned() + &string + ")"), &e);
                 unreachable!()
             },
         }
     }
 
     fn get_setting_value(split_file: &str, search_term: &str, search_type: SettingType) -> Result<Option<String>, RequiredSettingMissingError> {
-        let regex: Regex = Regex::new(&(r"(?ms)(".to_owned() + search_term + "=.*)\n")).expect("This \
+        let regex: Regex = Regex::new(&(r"(".to_owned() + search_term + "{1}=.*)\n")).expect("This \
         should remain a valid RegEx, as it has been tested");
         // This RegEx matches for the search, all values after the term before a new line, and only
         // matches if the match begins on a new line, reducing the risk of matching from a comment
@@ -157,9 +213,9 @@ impl NewFile for Config {
         let standard_config: &str = "\
         # Default config, generated by Astra. This \
         configuration file must be edited to be used \
-        normally.\n\
+        normally. Note: config file must end in a new line\n\
         Address=127.0.0.1\n\
-        Port=80,443"; // TODO Link with default config
+        Port=80,443\n"; // TODO Link with default config
 
         match file.write(standard_config.as_bytes()) {
             Ok(_) => (),
@@ -172,15 +228,15 @@ impl NewFile for Config {
     }
 }
 
-pub trait GetBindSocket {
-    fn get_bind_socket(&self, Index: usize) -> SocketAddr;
+pub trait BindSocket {
+    fn get_bind_socket(&self, address_index: usize, port_index: usize) -> SocketAddr;
 
     fn get_socket_numbers(&self) -> usize;
 }
 
-impl GetBindSocket for Config {
-    fn get_bind_socket(&self, index: usize) -> SocketAddr {
-        return (self.address[index], self.port).into()
+impl BindSocket for Config {
+    fn get_bind_socket(&self, address_index: usize, port_index: usize) -> SocketAddr {
+        return (self.address[address_index], self.port[port_index]).into()
     }
 
     fn get_socket_numbers(&self) -> usize {
@@ -192,7 +248,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             address: vec![IpAddr::from_str("127.0.0.1").expect("This is a built-in default and should not fail")],
-            port: 80,
+            port: vec![80_u16, 443_u16],
         }
     }
 }

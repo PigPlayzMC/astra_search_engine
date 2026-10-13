@@ -13,7 +13,7 @@ use config::{
     FromFile,
 };
 
-use crate::{config::{FileExistsError, FileNotFoundError, GetBindSocket, NewFile}, error::{error, fatal_error}};
+use crate::{config::{FileExistsError, FileNotFoundError, BindSocket, NewFile}, error::{error, fatal_error}};
 
 fn main() {
     let config_path = "astra.conf";
@@ -40,10 +40,10 @@ fn main() {
     };
 
     // TODO Multiple listeners
-    let listener: TcpListener = match TcpListener::bind(config.get_bind_socket(0)) {
+    let listener: TcpListener = match TcpListener::bind(config.get_bind_socket(0, 0)) {
         Ok(t) => t,
         Err(e) => {
-            fatal_error::<AddrParseError>(&("Unable to bind to socket ".to_string() + &config.get_bind_socket(0).to_string()), &e);
+            fatal_error::<AddrParseError>(&("Unable to bind to socket ".to_string() + &config.get_bind_socket(0, 0).to_string()), &e);
 
             unreachable!();
         },

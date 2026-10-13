@@ -8,7 +8,7 @@ pub fn fatal_error<ErrorParam: Error>(text: &str, rust_error: &dyn Error) {
         eprintln!("Fatal error occured: {} - {}", text, rust_error);
     } else {
         eprintln!("Fatal error occured: {}", text);
-    }
+    };
 
     exit(1);
 }
@@ -18,5 +18,5 @@ pub fn error<ErrorParam: Error>(text: &str, rust_error: &dyn Error) {
         eprintln!("Nonfatal error occured: {} - {}", text, rust_error);
     } else {
         eprintln!("Nonfatal error occured: {}", text);
-    }
+    };
 }
