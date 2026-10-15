@@ -240,7 +240,7 @@ impl BindSocket for Config {
     }
 
     fn get_socket_numbers(&self) -> (usize, usize) {
-        return (self.address.len() - 1, self.port.len() - 1);
+        return (self.address.len(), self.port.len());
     }
 }
 
