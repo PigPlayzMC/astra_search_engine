@@ -2,8 +2,16 @@ use std::net::{
     Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener,
 };
 
-pub async fn handle_stream(listener: TcpListener) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    println!("Handler thread init complete");
+use crate::error::{NoneError, error};
+
+pub async fn handle_stream(order: &str, listener: TcpListener) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    println!("{}| Socket handler thread at {} initialised correctly!", order, match listener.local_addr() {
+        Ok(a) => a.to_string(),
+        Err(_) => {
+            error::<NoneError>("Couldn't get local address for TCP Listener", &NoneError);
+            "(!unknown!)".to_string()
+        },
+    });
     
     loop {
         let (request_stream, request_address): (std::net::TcpStream, std::net::SocketAddr) = listener.accept()?;

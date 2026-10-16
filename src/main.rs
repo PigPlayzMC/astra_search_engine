@@ -66,7 +66,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
 
     // Create TCP subhandlers
     let mut handlers_vec: Vec<Runtime> = vec![];
+    let mut index: i32 = 0;
+    let index_max:usize = listeners_vec.len();
     for listener in listeners_vec {
+        index += 1;
         handlers_vec.push({
             let runtime: Runtime = match Builder::new_multi_thread()
                 .worker_threads(1)
@@ -84,7 +87,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
                 },
             };
 
-            runtime.spawn(async {handle_stream(listener).await});
+            let index_string: String = index.to_string();
+            runtime.spawn(async {handle_stream( &(index_string + "/" + &index_max.clone()), listener).await});
 
             runtime
         });
