@@ -88,7 +88,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
             };
 
             let index_string: String = index.to_string();
-            runtime.spawn(async {handle_stream( &(index_string + "/" + &index_max.clone()), listener).await});
+            let max_string: String = index_max.to_string();
+            runtime.spawn(async move {handle_stream( &(index_string + "/" + &max_string), listener).await});
 
             runtime
         });
